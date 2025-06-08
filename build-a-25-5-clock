@@ -1,0 +1,287 @@
+** start of index.html **
+
+<div id="root"></div>
+<audio id="beep" src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3" preload="auto"></audio>
+
+** end of index.html **
+** start of styles.css **
+
+https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css
+/* NBA Color Palette */
+:root {
+  --nba-red: #e03a3e;
+  --nba-navy: #00471b;
+  --nba-white: #ffffff;
+  --nba-silver: #c4ced4;
+  --nba-gray-dark: #1d1d1b;
+}
+
+/* Body and General */
+body {
+  background-color: var(--nba-navy);
+  color: var(--nba-white);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+}
+
+#clock {
+  background: var(--nba-gray-dark);
+  border-radius: 15px;
+  padding: 30px 40px;
+  box-shadow: 0 0 20px rgba(224, 58, 62, 0.7);
+  width: 350px;
+  text-align: center;
+}
+
+/* Headers */
+h1 {
+  font-weight: 700;
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+  color: var(--nba-red);
+  text-shadow: 2px 2px var(--nba-navy);
+}
+
+h2,
+h3 {
+  color: var(--nba-silver);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: 600;
+}
+
+/* Length Controls */
+#break-label,
+#session-label {
+  margin-bottom: 5px;
+  font-size: 1.2rem;
+}
+
+button {
+  background-color: var(--nba-red);
+  border: none;
+  color: var(--nba-white);
+  font-size: 1.3rem;
+  padding: 8px 14px;
+  margin: 0 5px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+button:hover {
+  background-color: var(--nba-white);
+  color: var(--nba-red);
+  font-weight: bold;
+}
+
+/* Length display */
+#break-length,
+#session-length {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0 10px;
+  color: var(--nba-white);
+  min-width: 30px;
+  display: inline-block;
+}
+
+/* Timer */
+#timer-label {
+  font-size: 1.8rem;
+  margin-top: 20px;
+  margin-bottom: 5px;
+  color: var(--nba-red);
+  text-shadow: 1px 1px var(--nba-navy);
+}
+
+#time-left {
+  font-size: 4.5rem;
+  font-weight: 900;
+  color: var(--nba-white);
+  text-shadow: 3px 3px var(--nba-navy);
+  user-select: none;
+}
+
+/* Start/Stop & Reset buttons */
+#start_stop,
+#reset {
+  background-color: var(--nba-navy);
+  border: 2px solid var(--nba-red);
+  color: var(--nba-red);
+  padding: 10px 25px;
+  margin: 20px 10px 0 10px;
+  border-radius: 12px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+#start_stop:hover,
+#reset:hover {
+  background-color: var(--nba-red);
+  color: var(--nba-white);
+  border-color: var(--nba-white);
+}
+
+/* Responsive */
+@media (max-width: 400px) {
+  #clock {
+    width: 90vw;
+    padding: 20px;
+  }
+
+  #time-left {
+    font-size: 3.5rem;
+  }
+}
+
+** end of styles.css **
+** start of script.js **
+
+const { useState, useEffect, useRef } = React;
+
+function App() {
+  const [breakLength, setBreakLength] = useState(5);
+  const [sessionLength, setSessionLength] = useState(25);
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [isRunning, setIsRunning] = useState(false);
+  const [onBreak, setOnBreak] = useState(false);
+  const timerRef = useRef(null);
+  const audioRef = useRef(null);
+
+  const formatTime = (time) => {
+    let minutes = Math.floor(time / 60);
+    let seconds = time % 60;
+    return `${minutes < 10 ? "0" : ""}${minutes}:${
+      seconds < 10 ? "0" : ""
+    }${seconds}`;
+  };
+
+  const handleReset = () => {
+    clearInterval(timerRef.current);
+    setBreakLength(5);
+    setSessionLength(25);
+    setTimeLeft(25 * 60);
+    setIsRunning(false);
+    setOnBreak(false);
+    audioRef.current.pause();
+    audioRef.current.currentTime = 0;
+  };
+
+  const handleStartStop = () => {
+    if (isRunning) {
+      clearInterval(timerRef.current);
+      setIsRunning(false);
+    } else {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            audioRef.current.play();
+            if (onBreak) {
+              setOnBreak(false);
+              return sessionLength * 60;
+            } else {
+              setOnBreak(true);
+              return breakLength * 60;
+            }
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      setIsRunning(true);
+    }
+  };
+
+  useEffect(() => {
+    return () => clearInterval(timerRef.current);
+  }, []);
+
+  const increment = (setter, value, max = 60) => {
+    if (value < max) setter(value + 1);
+  };
+  const decrement = (setter, value, min = 1) => {
+    if (value > min) setter(value - 1);
+  };
+
+  useEffect(() => {
+    if (!isRunning && !onBreak) {
+      setTimeLeft(sessionLength * 60);
+    }
+  }, [sessionLength]);
+
+  return (
+    <div className="text-center mt-5" id="clock">
+      <h1>25 + 5 Clock</h1>
+
+      <div className="d-flex justify-content-around mt-4">
+        <div>
+          <h3 id="break-label">Break Length</h3>
+          <button
+            id="break-decrement"
+            onClick={() => decrement(setBreakLength, breakLength)}
+          >
+            -
+          </button>
+          <span id="break-length"> {breakLength} </span>
+          <button
+            id="break-increment"
+            onClick={() => increment(setBreakLength, breakLength)}
+          >
+            +
+          </button>
+        </div>
+
+        <div>
+          <h3 id="session-label">Session Length</h3>
+          <button
+            id="session-decrement"
+            onClick={() => decrement(setSessionLength, sessionLength)}
+          >
+            -
+          </button>
+          <span id="session-length"> {sessionLength} </span>
+          <button
+            id="session-increment"
+            onClick={() => increment(setSessionLength, sessionLength)}
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <h2 id="timer-label">{onBreak ? "Break" : "Session"}</h2>
+        <h1 id="time-left">{formatTime(timeLeft)}</h1>
+      </div>
+
+      <div className="mt-3">
+        <button id="start_stop" onClick={handleStartStop}>
+          Start/Stop
+        </button>
+        <button id="reset" onClick={handleReset}>
+          Reset
+        </button>
+      </div>
+
+      <audio
+        id="beep"
+        preload="auto"
+        src="https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3"
+        ref={audioRef}
+      />
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById("root"));
+
+** end of script.js **
+
